@@ -1,8 +1,8 @@
-"""creating tables
+"""initial migration
 
-Revision ID: 6193909b041c
+Revision ID: 98fa22507d7e
 Revises: 
-Create Date: 2025-05-04 06:49:43.468541
+Create Date: 2025-05-04 20:33:30.786486
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '6193909b041c'
+revision = '98fa22507d7e'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -25,7 +25,8 @@ def upgrade():
     sa.Column('created_at', sa.DateTime(), nullable=True),
     sa.Column('quantity', sa.Integer(), nullable=False),
     sa.Column('available', sa.Integer(), nullable=False),
-    sa.PrimaryKeyConstraint('id')
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('title')
     )
     op.create_table('borrowed',
     sa.Column('id', sa.Integer(), nullable=False),
@@ -34,7 +35,8 @@ def upgrade():
     sa.Column('issued_at', sa.DateTime(), nullable=True),
     sa.Column('expected_at', sa.DateTime(), nullable=True),
     sa.Column('returned_at', sa.DateTime(), nullable=True),
-    sa.Column('fine', sa.Integer(), nullable=False),
+    sa.Column('fine', sa.Integer(), nullable=True),
+    sa.Column('status', sa.String(length=30), nullable=False),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('members',

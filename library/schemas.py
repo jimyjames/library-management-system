@@ -23,34 +23,36 @@ class BooksOut(BooksIn):
 
 
 
-class Members(BaseModel):
+class MembersIn(BaseModel):
     first_name: str = Field(min_length=3, max_length=50)
     middle_name: str = Field(min_length=3, max_length=50)
     last_name: str = Field(min_length=3, max_length=50)
     email: EmailStr
+    gender: str = Field(min_length=3, max_length=7)
     phone: constr(min_length=10, max_length=15, pattern=r'^\+?[1-9]\d{9,14}$')
 
-class MembersIn(Members):
+class MembersOut(MembersIn):
     created_at: datetime
-class MembersOut(Members):
     id: int
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
-class Borrowed(BaseModel):
+class BorrowedIn(BaseModel):
     member_id: int = Field(gt=0)
     book_id: int = Field(gt=0)
-    issued_at: datetime
-    expected_at: datetime
     returned_at: Optional[datetime] = None
+    expected_at: Optional[datetime]= None
+    
+
+
+class BorrowedOut(BorrowedIn):
+    id: int
+    issued_at: datetime
+    
+    status: str
     fine: Optional[int] = Field(ge=0)
 
-class BorrowedIn(Borrowed):
-    pass
-class BorrowedOut(Borrowed):
-    id: int
-
     class Config:
-        orm_mode = True 
+        from_attributes = True 

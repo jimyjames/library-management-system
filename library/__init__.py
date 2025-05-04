@@ -21,4 +21,10 @@ def create_app(config_name="default"):
     from .Books import books as books_blueprint
     app.register_blueprint(books_blueprint, url_prefix='/books')
 
+    from .members import members as members_blueprint
+    app.register_blueprint(members_blueprint, url_prefix='/members')
+
+    from .lending import lending as lending_blueprint
+    app.register_blueprint(lending_blueprint, url_prefix='/lending')
+
     return app

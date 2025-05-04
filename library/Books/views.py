@@ -1,9 +1,9 @@
 from library.Books import books
 from library.models import CrudOps,Books
 from flask import render_template, redirect, url_for, flash, request,jsonify
-from library.schemas import  Members, Borrowed,BooksIn, BooksOut, MembersIn, MembersOut, BorrowedIn, BorrowedOut
-from library import db
+from library.schemas import  BooksIn, BooksOut
 from pydantic import ValidationError
+from library import db
 
 
 
@@ -45,13 +45,17 @@ def delete_book(book_id):
 
 @books.route('/update/<int:book_id>', methods=['PUT'])
 def update_book(book_id):
-    book = Books.query.get_or_404(book_id)
-    book.title = request.json['title']
-    book.author = request.json['author']
-    book.quantity = request.json['quantity']
-    book.available = request.json['available']
-    db.session.commit()
-    return jsonify({"message": "Book updated successfully"}), 200
+    try:
+        edit_book = BooksIn(**request.json) 
+        book = Books.query.get_or_404(book_id)
+        book.title = edit_book.title
+        book.author = edit_book.author
+        book.quantity = edit_book
+        book.available = edit_book.available
+        db.session.commit()
+        return jsonify({"message": "Book updated successfully"}), 200
+    except ValidationError as e:
+        return jsonify({"errors":e.errors()}), 400  
 
 @books.route('/list', methods=['GET'])
 def list_books():

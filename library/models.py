@@ -48,4 +48,5 @@ class Borrowed(CrudOps,db.Model):
     issued_at=db.Column(db.DateTime(),default=db.func.current_timestamp())
     expected_at=db.Column(db.DateTime(),default=db.func.current_timestamp())
     returned_at=db.Column(db.DateTime(),default=db.func.current_timestamp())
-    fine=db.Column(db.Integer(),nullable=False)
+    fine=db.Column(db.Integer())
+    status=db.Column(db.String(30),nullable=False)
