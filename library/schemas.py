@@ -51,8 +51,11 @@ class BorrowedOut(BorrowedIn):
     id: int
     issued_at: datetime
     
-    status: str
-    fine: Optional[int] = Field(ge=0)
+    status: str 
+    fine: Optional[int] = None
+    borrower: MembersOut
+    books_borrowed: BooksOut
+    # fine: Optional[int] = Field(ge=0)
 
     class Config:
         from_attributes = True 

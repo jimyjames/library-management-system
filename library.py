@@ -1,10 +1,13 @@
 from library import db,create_app
 from library.models import Books, Members, Borrowed
 import json
-# from flask_cors import CORS
+from flask_cors import CORS
 
 app = create_app("default")
-# CORS(app)
+CORS(app)
+
+# CORS(app, origins=["http://localhost:3000"])
+
 
 
 @app.shell_context_processor

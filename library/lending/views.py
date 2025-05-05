@@ -7,55 +7,68 @@ from pydantic import ValidationError
 from datetime import datetime, timedelta
 from sqlalchemy import func
 from sqlalchemy.orm import aliased
+from flask_cors import cross_origin
 
 
 
-@lending.route('/add', methods=['POST'])
+@lending.route('/add', methods=['POST', 'GET'])
+@cross_origin()
 def add_lending():
-    try:
-        new_lending = BorrowedIn(**request.json)
-        book_id = new_lending.book_id
-        member_id = new_lending.member_id
-        issued_at = datetime.now()
-        expected_at = new_lending.expected_at
-        book = Books.query.filter_by(id=book_id).first()
+    if request.method == 'POST':
+        try:
+            new_lending = BorrowedIn(**request.json)
+            book_id = new_lending.book_id
+            member_id = new_lending.member_id
+            issued_at = datetime.now()
+            expected_at = new_lending.expected_at
+            book = Books.query.filter_by(id=book_id).first()
 
-        member = Members.query.filter_by(id=member_id).first()
-        if expected_at is None:
-            expected_at = datetime.now() + timedelta(days=14)
-        if book is None or member is None:
-            return jsonify({"error": "Book or member not found"}), 404
-        if book.available == 0:
-            return jsonify({"error": "Book not available"}), 400
-        if expected_at < issued_at: 
-            return jsonify({"error": "Expected return date must be after issue date"}), 400
-        if expected_at > issued_at + timedelta(days=32):
-            return jsonify({"error": "Expected return date cannot be more than 30 days from issue date"}), 400
-        
-        lending = Borrowed(
-            member_id=member_id,
-            book_id=book_id,
-            issued_at=issued_at,
-            expected_at=expected_at,
-            returned_at=None,
-            status='active'
-        )
-        db.session.add(lending)
-        book.available -= 1
-        db.session.commit()
-        return jsonify({"message": "Lending added successfully"}), 201
-    except ValidationError as e:
-        return jsonify({"error": e.errors()}), 400
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({"error": str(e)}), 500
+            member = Members.query.filter_by(id=member_id).first()
+            if expected_at is None:
+                expected_at = datetime.now() + timedelta(days=14)
+            if book is None or member is None:
+                return jsonify({"error": "Book or member not found"}), 404
+            if book.available == 0:
+                return jsonify({"error": "Book not available"}), 400
+            if expected_at < issued_at: 
+                return jsonify({"error": "Expected return date must be after issue date"}), 400
+            if expected_at > issued_at + timedelta(days=32):
+                return jsonify({"error": "Expected return date cannot be more than 30 days from issue date"}), 400
+            
+            lending = Borrowed(
+                member_id=member_id,
+                book_id=book_id,
+                issued_at=issued_at,
+                expected_at=expected_at,
+                returned_at=None,
+                status='active'
+            )
+            db.session.add(lending)
+            book.available -= 1
+            db.session.commit()
+            return jsonify({"message": "Lending added successfully"}), 201
+        except ValidationError as e:
+            return jsonify({"error": e.errors()}), 400
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({"error": str(e)}), 500
+    all_lendings = Borrowed.query.all()
+    book_alias = aliased(Books)
+    member_alias = aliased(Members)
+    lendings = Borrowed.query.options(db.joinedload(Borrowed.books_borrowed), db.joinedload(Borrowed.borrower)).all()
+
+    
+
+    return jsonify([BorrowedOut.from_orm(lending).dict() for lending in lendings]), 200
 @lending.route('/<int:lending_id>', methods=['GET'])
+@cross_origin()
 def get_lending(lending_id):
     lending = Borrowed.query.get(lending_id)
     if lending is None:
         return jsonify({"error": "Lending not found"}), 404
-    return jsonify(Borrowed.from_orm(lending).dict()), 200
+    return jsonify(BorrowedOut.from_orm(lending).dict()), 200
 @lending.route('/<int:lending_id>', methods=['PUT'])
+@cross_origin()
 def update_lending(lending_id):
     try:
         lending = Borrowed.query.get(lending_id)
@@ -78,13 +91,15 @@ def update_lending(lending_id):
         lending.issued_at = updated_lending.issued_at
         lending.expected_at = updated_lending.expected_at
         db.session.commit()
-        return jsonify({"message": "Lending updated successfully"}), 200
+        return jsonify(BorrowedOut.from_orm(lending).dict()), 200
+        # return jsonify({"message": "Lending updated successfully"}), 200
     except ValidationError as e:
         return jsonify({"error": e.errors()}), 400
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
 @lending.route('/<int:lending_id>', methods=['DELETE'])
+@cross_origin()
 def delete_lending(lending_id):    
     lending = Borrowed.query.get(lending_id)
     if lending is None:

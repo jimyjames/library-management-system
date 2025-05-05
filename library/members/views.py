@@ -4,9 +4,11 @@ from library.models import Members, Borrowed, Books
 from library.schemas import  MembersIn, MembersOut
 from library import db
 from pydantic import ValidationError
+from flask_cors import cross_origin
 
 
 @members.route('/add', methods=['GET', 'POST'])
+@cross_origin()
 def add_member():
     if request.method == 'POST':
         try:
@@ -41,6 +43,7 @@ def add_member():
     return jsonify([MembersOut.from_orm(member).model_dump() for member in all_members]), 200
 
 @members.route('/delete/<int:member_id>', methods=['DELETE'])
+@cross_origin()
 def delete_member(member_id):
     member = Members.query.get_or_404(member_id)
     db.session.delete(member)
@@ -48,6 +51,7 @@ def delete_member(member_id):
     return jsonify({"message": "Member deleted successfully"}), 200
 
 @members.route('/update/<int:member_id>', methods=['PUT'])
+@cross_origin()
 def update_member(member_id):    
     try:
         edit_member = MembersIn(**request.json) 

@@ -4,11 +4,13 @@ from flask import render_template, redirect, url_for, flash, request,jsonify
 from library.schemas import  BooksIn, BooksOut
 from pydantic import ValidationError
 from library import db
+from flask_cors import cross_origin
 
 
 
 
 @books.route('/add', methods=['GET', 'POST'])
+@cross_origin()
 def add_book():
     if request.method =='POST':
         try:
@@ -37,6 +39,7 @@ def add_book():
     return jsonify([BooksOut.from_orm(book).model_dump() for book in allbooks]), 200
 
 @books.route('/delete/<int:book_id>', methods=['DELETE'])
+@cross_origin()
 def delete_book(book_id):
     book = Books.query.get_or_404(book_id)
     db.session.delete(book)
@@ -44,24 +47,19 @@ def delete_book(book_id):
     return jsonify({"message": "Book deleted successfully"}), 200
 
 @books.route('/update/<int:book_id>', methods=['PUT'])
+@cross_origin()
 def update_book(book_id):
     try:
         edit_book = BooksIn(**request.json) 
+        print("edit_book",edit_book)
         book = Books.query.get_or_404(book_id)
         book.title = edit_book.title
         book.author = edit_book.author
-        book.quantity = edit_book
+        book.quantity = edit_book.quantity
         book.available = edit_book.available
         db.session.commit()
         return jsonify({"message": "Book updated successfully"}), 200
     except ValidationError as e:
         return jsonify({"errors":e.errors()}), 400  
 
-@books.route('/list', methods=['GET'])
-def list_books():
-    if request.method == 'GET':
-               return("this is the books template")
-
-    # books = Books.query.all()
-    # return jsonify ([BooksOut.from_orm(books).dict() for books in books ]), 201
 
