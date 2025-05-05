@@ -81,14 +81,14 @@ def update_lending(lending_id):
         member = Members.query.filter_by(id=member_id).first()
         if book is None or member is None:
             return jsonify({"error": "Book or member not found"}), 404
-        if updated_lending.expected_at < updated_lending.issued_at: 
+        if updated_lending.expected_at < lending.issued_at: 
             return jsonify({"error": "Expected return date must be after issue date"}), 400
-        if updated_lending.expected_at > updated_lending.issued_at + timedelta(days=30):
+        if updated_lending.expected_at > lending.issued_at + timedelta(days=30):
             return jsonify({"error": "Expected return date cannot be more than 30 days from issue date"}), 400
         
         lending.book_id = book_id
         lending.member_id = member_id
-        lending.issued_at = updated_lending.issued_at
+        # lending.issued_at = datetime.now() | updated_lending.issued_at if updated_lending.issued_at else lending.issued_at
         lending.expected_at = updated_lending.expected_at
         db.session.commit()
         return jsonify(BorrowedOut.from_orm(lending).dict()), 200
@@ -111,3 +111,33 @@ def delete_lending(lending_id):
     db.session.delete(lending)
     db.session.commit()
     return jsonify({"message": "Lending deleted successfully"}), 200
+
+
+@lending.route('/<int:lending_id>/return', methods=['PUT'])
+@cross_origin()
+def return_lending(lending_id):
+    try:
+        lending = Borrowed.query.get(lending_id)
+        if lending is None:
+            return jsonify({"error": "Lending not found"}), 404
+        if lending.status == 'returned':
+            return jsonify({"error": "Lending already returned"}), 400
+        book = Books.query.filter_by(id=lending.book_id).first()
+        if book is None:
+            return jsonify({"error": "Book not found"}), 404
+        # Calculate fine if any
+        fine = 0
+        if lending.expected_at < datetime.now():
+            days_overdue = (datetime.now() - lending.expected_at).days
+            fine = days_overdue * 50  # Assuming a fine of $5 per day
+        lending.returned_at = datetime.now()
+        lending.status = 'returned'
+        lending.fine = fine if fine < 501 else 500
+        book.available += 1
+        db.session.commit()
+        return jsonify(BorrowedOut.from_orm(lending).dict()), 200
+    except ValidationError as e:
+        return jsonify({"error": e.errors()}), 400
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
